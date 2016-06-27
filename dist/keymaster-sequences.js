@@ -1,15 +1,14 @@
 /*! keymaster-sequences - v0.0.1
- *  Release on: 2014-07-08
- *  Copyright (c) 2014 Cory Mawhorter
+ *  Release on: 2016-06-27
+ *  Copyright (c) 2016 Cory Mawhorter
  *  Licensed MIT */
 /*global document */
 (function (global, doc, keymaster) {
   'use strict';
 
   var reSpace = new RegExp('\\s+')
-    , timeout = 1000
-    , sequences = {}
-    , lastDocumentEvent = null;
+    , timeout = 500
+    , sequences = {};
 
   function keySequence(str, scope, method) {
     /*jshint validthis:true */
@@ -27,7 +26,6 @@
       , addedHandlers = []
       , sequence = sequences[str] = {
             keys: keys
-          , events: []
           , _gc: null
           , _working: null
         }
@@ -49,8 +47,7 @@
   function sequenceHandler(sequence, method, evt, handler) {
     /*jshint validthis:true */
 
-    var curTarget
-      , lastEvt;
+    var curTarget;
 
     if (null === sequence._working) {
       resetSequence(sequence);
@@ -62,11 +59,9 @@
     }, timeout);
 
     curTarget = sequence._working[0];
-    lastEvt = sequence.events[sequence.events.length - 1] || null;
 
-    if (handler.shortcut === curTarget && (lastEvt === null || lastEvt === lastDocumentEvent)) {
+    if (handler.shortcut === curTarget) {
       sequence._working.shift();
-      sequence.events.push(evt);
 
       if (sequence._working.length === 0) {
         resetSequence(sequence);
@@ -80,32 +75,11 @@
 
   function resetSequence(sequence) {
     sequence._working = sequence.keys.slice(0);
-    sequence.events = [];
     if (null !== sequence._gc) {
       clearTimeout(sequence._gc);
       sequence._gc = null;
     }
   }
-
-  function addEvent(object, event, method) {
-    if (object.addEventListener) {
-      object.addEventListener(event, method, false);
-    }
-    else if(object.attachEvent) {
-      object.attachEvent('on'+event, function(){ method(global.event); });
-    }
-  }
-
-
-  var mods = [16, 18, 17, 91, 93, 224 ];
-  addEvent(doc, 'keydown', function(event) {
-    // ignore modifier keys
-    if (~mods.indexOf(event.keyCode)) {
-      return;
-    }
-
-    lastDocumentEvent = event;
-  });
 
   if (!!keymaster && typeof keymaster.isPressed === 'function') {
     keymaster.sequence = keySequence;
