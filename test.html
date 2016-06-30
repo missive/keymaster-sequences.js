@@ -21,7 +21,6 @@ var handler = function(name) {
     console.group(name);
     console.log('Event', evt);
     console.log('keymaster handler', handler);
-    console.log('sequence', sequence);
     console.groupEnd();
   };
 };
@@ -41,8 +40,10 @@ key.sequence('b ctrl+shift+a', handler('b ctrl+shift+a'));
 key.sequence('g i', handler('g i'));
 key.sequence('g k', handler('g k'));
 key.sequence('g a', handler('g a'));
+key.sequence('g b a', handler('g b a'));
 
 key.sequence('* a', handler('* a'));
+key.sequence('a', handler('a'));
 
 key.sequence('?', handler('?'));
 </script>

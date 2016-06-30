@@ -1,5 +1,5 @@
 /*! keymaster-sequences - v0.0.1
- *  Release on: 2016-06-27
+ *  Release on: 2016-06-30
  *  Copyright (c) 2016 Cory Mawhorter
  *  Licensed MIT */
 /*global document */
@@ -7,78 +7,90 @@
   'use strict';
 
   var reSpace = new RegExp('\\s+')
-    , timeout = 500
-    , sequences = {};
+    , reSeq = new RegExp('^seq_')
+    , timeout = 1000
+    , timer = null
+    , prevScope = ''
+    , addedHandlers = {};
 
   function keySequence(str, scope, method) {
     /*jshint validthis:true */
-
-    if (false === reSpace.test(str)) {
-      return keymaster.apply(this, arguments);
-    }
 
     if (typeof scope === 'function') {
       method = scope;
       scope = 'all';
     }
 
+    if (!reSpace.test(str)) {
+      return keymaster(str, scope, function() {
+        if (reSeq.test(keymaster.getScope())) { return; }
+        return method.apply(this, arguments);
+      });
+    }
+
     var keys = str.split(reSpace)
-      , addedHandlers = []
-      , sequence = sequences[str] = {
-            keys: keys
-          , _gc: null
-          , _working: null
-        }
-      , handler = function() {
-          var args = Array.prototype.slice.call(arguments, 0);
-          args.unshift(sequence, method);
-          return sequenceHandler.apply(this, args);
-        };
+      , seqScope = 'seq_'
+      , aScope, k, prevK;
 
     for (var i=0; i < keys.length; i++) {
-      var k = keys[i];
-      if (!~addedHandlers.indexOf(k)) {
-        keymaster(k, scope, handler);
-        addedHandlers.push(k);
+      k = keys[i];
+      prevK = keys[i - 1];
+      aScope = scope;
+
+      if (prevK) {
+        aScope = seqScope += prevK;
+      }
+
+      if (!addedHandlers[aScope]) {
+        addedHandlers[aScope] = {};
+      }
+
+      if (!addedHandlers[aScope][k]) {
+        keymaster(k, aScope, sequenceHandler);
+        addedHandlers[aScope][k] = { method: null };
       }
     }
+
+    // Add method on the last sequence key
+    addedHandlers[aScope][k].method = method;
   }
 
-  function sequenceHandler(sequence, method, evt, handler) {
+  function sequenceHandler(evt, handler) {
     /*jshint validthis:true */
 
-    var curTarget;
+    var scope = keymaster.getScope();
 
-    if (null === sequence._working) {
-      resetSequence(sequence);
-    }
+    clearTimeout(timer);
+    timer = setTimeout(resetSequence, timeout);
 
-    clearTimeout(sequence._gc);
-    sequence._gc = setTimeout(function() {
-      resetSequence(sequence);
-    }, timeout);
+    // Currently in sequence
+    if (reSeq.test(handler.scope)) {
+      var k = handler.shortcut
+        , data = addedHandlers[scope][k] || {};
 
-    curTarget = sequence._working[0];
+      // Finishing sequence
+      if (data.method) {
+        setTimeout(function() {
+          resetSequence();
+          data.method.call(this, evt, handler);
+        }, 0);
 
-    if (handler.shortcut === curTarget) {
-      sequence._working.shift();
-
-      if (sequence._working.length === 0) {
-        resetSequence(sequence);
-        return method.call(this, evt, handler, sequence);
+      // Continuing sequence
+      } else {
+        keymaster.setScope(scope + handler.shortcut);
       }
-    }
-    else {
-      resetSequence(sequence);
+
+    // Starting sequence
+    } else {
+      if (reSeq.test(scope)) { return; }
+      prevScope = scope;
+      keymaster.setScope('seq_' + handler.shortcut);
     }
   }
 
-  function resetSequence(sequence) {
-    sequence._working = sequence.keys.slice(0);
-    if (null !== sequence._gc) {
-      clearTimeout(sequence._gc);
-      sequence._gc = null;
-    }
+  function resetSequence() {
+    clearTimeout(timer);
+    keymaster.setScope(prevScope);
   }
 
   if (!!keymaster && typeof keymaster.isPressed === 'function') {
