@@ -25,6 +25,12 @@ var handler = function(name) {
   };
 };
 
+key.sequence('command+shift+7', handler('command+shift+7'))
+key.sequence('command+shift+8', handler('command+shift+8'))
+
+key.sequence(';', handler(';'))
+key.sequence('shift+,', handler('shift+,'))
+
 key.sequence('up up down down left right left right b a', handler('konami mothafuckassss'));
 
 key.sequence('h e l l o w o r l d', handler('why, hello there.'));
