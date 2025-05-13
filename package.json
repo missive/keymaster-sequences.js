@@ -1,6 +1,6 @@
 {
-  "name": "keymaster-sequences",
-  "version": "0.0.1",
+  "name": "@missive/keymaster-sequences",
+  "version": "1.0.0",
   "description": "Add keyboard sequence support to the awesome keymaster.js",
   "main": "dist/keymaster-sequences.js",
   "readmeFilename": "README.md",
